@@ -1,5 +1,5 @@
 <?php
-require '../config/db.php';
+require __DIR__ . '/../config/db.php';
 
 $data = json_encode($_POST);
 

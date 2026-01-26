@@ -1,9 +1,10 @@
 <?php
 session_start();
 require __DIR__ . '/config/db.php';
+require __DIR__ . '/partials/bootstrap.php';
 
 if (!isset($_SESSION['user_id'])) {
-    header('Location: auth/login.php');
+    header('Location: ' . ios_url('/auth/login.php'));
     exit;
 }
 
@@ -19,7 +20,7 @@ if ($aulaRes && ($aRow = $aulaRes->fetch_assoc())) {
         $chk = $conn->query("SELECT aprovado FROM aula_quiz_respostas WHERE user_id={$user_id} AND aula_id={$aula_id} LIMIT 1");
         $ok = ($chk && ($r = $chk->fetch_assoc()) && !empty($r['aprovado']));
         if (!$ok) {
-            header("Location: aula.php?curso_id={$curso_id}&aula_id={$aula_id}");
+            header('Location: ' . ios_url("/aula.php?curso_id={$curso_id}&aula_id={$aula_id}"));
             exit;
         }
     }
@@ -32,5 +33,5 @@ if ($check->num_rows == 0) {
     $conn->query("INSERT INTO progresso (user_id, aula_id, concluida) VALUES ($user_id, $aula_id, 1)");
 }
 
-header("Location: curso.php?id=$curso_id");
+header('Location: ' . ios_url("/curso.php?id=$curso_id"));
 exit;

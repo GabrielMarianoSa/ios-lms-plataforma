@@ -1,6 +1,6 @@
 <?php
-require 'protect.php';
-require '../config/db.php';
+require __DIR__ . '/protect.php';
+require __DIR__ . '/../config/db.php';
 require __DIR__ . '/../sql/db_check_inscricoes.php'; // Ensure structure
 
 $pageTitle = 'Admin • Inscrições';

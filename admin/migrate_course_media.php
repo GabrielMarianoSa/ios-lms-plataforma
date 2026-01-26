@@ -1,5 +1,5 @@
 <?php
-require 'protect.php';
+require __DIR__ . '/protect.php';
 require __DIR__ . '/../config/db.php';
 require __DIR__ . '/../partials/bootstrap.php';
 

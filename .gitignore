@@ -10,14 +10,13 @@
 *~
 
 # Upload directories (keep structure but ignore content)
-uploads/aulas/*
+# Mantendo PDFs e thumbnails para produção
+# uploads/aulas/*
 uploads/avatars/*
-uploads/materials/*
-uploads/thumbnails/*
-!uploads/aulas/.gitkeep
 !uploads/avatars/.gitkeep
-!uploads/materials/.gitkeep
-!uploads/thumbnails/.gitkeep
+# IMPORTANTE: materials, thumbnails e aulas incluídos para deploy
+# uploads/materials/*
+# uploads/thumbnails/*
 
 # Assets uploads
 assets/uploads/*

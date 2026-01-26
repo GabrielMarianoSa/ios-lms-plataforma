@@ -1,6 +1,6 @@
 <?php
 session_start();
-require '../config/db.php';
+require __DIR__ . '/../config/db.php';
 
 require __DIR__ . '/../partials/bootstrap.php';
 
@@ -24,7 +24,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             unset($_SESSION['avatar']);
         }
 
-        header("Location: ../index.php");
+        header('Location: ' . ios_url('/index.php'));
         exit;
     } else {
         $erro = "Login inválido";
