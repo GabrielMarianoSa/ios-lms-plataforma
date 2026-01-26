@@ -102,7 +102,7 @@ $recentInscricoes = $conn->query("
     <div class="admin-hero">
         <div class="d-flex flex-column flex-lg-row justify-content-between align-items-start align-items-lg-center gap-3">
             <div>
-                <h1 class="h2 fw-bold mb-2">👋 Bem-vindo ao Painel</h1>
+                <h1 class="h2 fw-bold mb-2">Bem-vindo ao Painel</h1>
                 <p class="mb-0 opacity-75">Gerencie cursos, aulas e alunos de forma simples.</p>
             </div>
             <a href="<?= ios_url('/index.php') ?>" class="btn btn-light fw-semibold shadow-sm">
@@ -168,13 +168,13 @@ $recentInscricoes = $conn->query("
     </div>
 
     <!-- Quick Actions - Big and Clear -->
-    <h2 class="h4 fw-bold mb-4">🚀 O que você quer fazer?</h2>
+    <h2 class="h4 fw-bold mb-4">O que você quer fazer?</h2>
     <div class="row g-4 mb-5">
         <div class="col-6 col-md-4 col-lg-2">
             <a href="cursos.php" class="quick-action">
                 <i class="bi bi-plus-circle"></i>
                 <div class="fw-bold">Criar Curso</div>
-                <small class="text-muted d-none d-md-block mt-1">Adicione um novo curso</small>
+                <small class="text-muted d-none d-md-block mt-1">Novo ou gerenciar existentes</small>
             </a>
         </div>
         <div class="col-6 col-md-4 col-lg-2">
@@ -223,7 +223,7 @@ $recentInscricoes = $conn->query("
             <div class="card border-0 shadow-sm rounded-4">
                 <div class="card-header bg-white border-0 py-3 px-4">
                     <div class="d-flex justify-content-between align-items-center">
-                        <h5 class="fw-bold mb-0">📋 Últimas Inscrições</h5>
+                        <h5 class="fw-bold mb-0"><i class="bi bi-list-task me-2 text-primary"></i>Últimas Inscrições</h5>
                         <a href="inscricoes.php" class="btn btn-sm btn-outline-primary rounded-pill">Ver todas</a>
                     </div>
                 </div>
@@ -291,7 +291,7 @@ $recentInscricoes = $conn->query("
         <div class="col-12 col-lg-4">
             <div class="card border-0 shadow-sm rounded-4 h-100">
                 <div class="card-header bg-white border-0 py-3 px-4">
-                    <h5 class="fw-bold mb-0">💡 Dicas Rápidas</h5>
+                    <h5 class="fw-bold mb-0"><i class="bi bi-lightbulb me-2 text-warning"></i>Dicas Rápidas</h5>
                 </div>
                 <div class="card-body">
                     <div class="d-flex gap-3 mb-3 p-3 bg-light rounded-3">

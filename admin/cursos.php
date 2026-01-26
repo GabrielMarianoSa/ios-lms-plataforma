@@ -127,7 +127,7 @@ if ($cursoInfosEnabled) {
         <div class="col-12 col-lg-5">
             <div class="card card-soft">
                 <div class="card-body">
-                    <h2 class="h5">Novo curso</h2>
+                    <h2 class="h5"><i class="bi bi-plus-circle me-2 text-primary"></i>Novo curso</h2>
                         <form method="POST" class="vstack gap-3" enctype="multipart/form-data">
                         <div>
                             <label class="form-label">Título</label>
@@ -144,7 +144,7 @@ if ($cursoInfosEnabled) {
                         <div>
                             <label class="form-label">Miniatura (jpg/png)</label>
                             <input name="thumbnail" type="file" accept="image/*" class="form-control">
-                            <div class="form-text">Sugestão: use uma imagem mais “quadrada/pequena” (ex: 600×600) para ficar discreto.</div>
+                            <div class="form-text"><i class="bi bi-lightbulb text-warning me-1"></i><strong>Dica:</strong> Use imagens 600×400 pixels para melhor resultado nos cards.</div>
                         </div>
                         <div>
                             <label class="form-label">Texto didático do módulo</label>

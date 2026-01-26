@@ -50,10 +50,11 @@ if ($cursoInfosEnabled) {
 $salvo = false;
 $erro = null;
 
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    if (!$cursoInfosEnabled) {
-        $erro = 'A tabela curso_infos ainda não existe. Crie a tabela antes de salvar.';
-    } else {
+// UNIFIED POST handler - saves BOTH infos and media in one action
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['salvar_tudo'])) {
+    
+    // 1. Save curso_infos (dates, location, etc) if table exists
+    if ($cursoInfosEnabled) {
         $modalidade = trim((string)($_POST['modalidade'] ?? ''));
         $local = trim((string)($_POST['local'] ?? ''));
         $data_inicio = trim((string)($_POST['data_inicio'] ?? ''));
@@ -80,7 +81,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $ins->execute();
         }
 
-        $salvo = true;
         $info = [
             'modalidade' => $modalidade,
             'local' => $local,
@@ -90,75 +90,58 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             'vagas' => $vagasInt ?? '',
         ];
     }
-}
 
-      // Handle media saves (thumbnail/pdf/video) into cursos table
-      if ($_SERVER['REQUEST_METHOD'] === 'POST' && (isset($_POST['salvar_midias']) || isset($_POST['salvar_infos']))) {
-        // reload curso in case
-        $curso = $conn->query("SELECT * FROM cursos WHERE id = {$curso_id}")->fetch_assoc();
+    // 2. Save media (thumbnail, modulo_texto) to cursos table
+    $colsRes = $conn->query("SHOW COLUMNS FROM cursos");
+    $cols = [];
+    while ($r = $colsRes->fetch_assoc()) $cols[] = $r['Field'];
 
-        // check available columns
-        $colsRes = $conn->query("SHOW COLUMNS FROM cursos");
-        $cols = [];
-        while ($r = $colsRes->fetch_assoc()) $cols[] = $r['Field'];
+    $updates = [];
 
-        $updates = [];
+    // Thumbnail upload
+    if (in_array('thumbnail', $cols, true) && !empty($_FILES['thumbnail']['tmp_name'])) {
+        $up = $_FILES['thumbnail'];
+        $ext = pathinfo($up['name'], PATHINFO_EXTENSION);
+        $thumbnailName = 'uploads/thumbnails/' . time() . '_' . bin2hex(random_bytes(6)) . '.' . $ext;
+        if (!is_dir(__DIR__ . '/../uploads/thumbnails')) mkdir(__DIR__ . '/../uploads/thumbnails', 0755, true);
+        move_uploaded_file($up['tmp_name'], __DIR__ . '/../' . $thumbnailName);
+        $updates['thumbnail'] = $thumbnailName;
+    }
 
-        if (in_array('thumbnail', $cols, true) && !empty($_FILES['thumbnail']['tmp_name'])) {
-          $up = $_FILES['thumbnail'];
-          $ext = pathinfo($up['name'], PATHINFO_EXTENSION);
-          $thumbnailName = 'uploads/thumbnails/' . time() . '_' . bin2hex(random_bytes(6)) . '.' . $ext;
-          if (!is_dir(__DIR__ . '/../uploads/thumbnails')) mkdir(__DIR__ . '/../uploads/thumbnails', 0755, true);
-          move_uploaded_file($up['tmp_name'], __DIR__ . '/../' . $thumbnailName);
-          $updates['thumbnail'] = $thumbnailName;
-        }
+    // Thumbnail path (manual entry)
+    if (in_array('thumbnail', $cols, true) && !empty($_POST['thumbnail_path']) && empty($_FILES['thumbnail']['tmp_name'])) {
+        $path = trim((string)$_POST['thumbnail_path']);
+        if ($path !== '') $updates['thumbnail'] = $path;
+    }
 
-        // allow specifying existing path
-        if (in_array('thumbnail', $cols, true) && !empty($_POST['thumbnail_path'])) {
-          $path = trim((string)$_POST['thumbnail_path']);
-          if ($path !== '') $updates['thumbnail'] = $path;
-        }
+    // Modulo texto
+    if (in_array('modulo_texto', $cols, true)) {
+        $mt = trim((string)($_POST['modulo_texto'] ?? ''));
+        $updates['modulo_texto'] = $mt !== '' ? $mt : null;
+    }
 
-        if (in_array('pdf', $cols, true) && !empty($_FILES['pdf']['tmp_name'])) {
-          $up = $_FILES['pdf'];
-          $ext = pathinfo($up['name'], PATHINFO_EXTENSION);
-          $pdfName = 'uploads/materials/' . time() . '_' . bin2hex(random_bytes(6)) . '.' . $ext;
-          if (!is_dir(__DIR__ . '/../uploads/materials')) mkdir(__DIR__ . '/../uploads/materials', 0755, true);
-          move_uploaded_file($up['tmp_name'], __DIR__ . '/../' . $pdfName);
-          $updates['pdf'] = $pdfName;
-        }
-
-        if (in_array('pdf', $cols, true) && !empty($_POST['pdf_path'])) {
-          $path = trim((string)$_POST['pdf_path']);
-          if ($path !== '') $updates['pdf'] = $path;
-        }
-
-        if (in_array('modulo_texto', $cols, true)) {
-          $mt = trim((string)($_POST['modulo_texto'] ?? ''));
-          $updates['modulo_texto'] = $mt !== '' ? $mt : null;
-        }
-
-        if (!empty($updates)) {
-          $parts = [];
-          $vals = [];
-          foreach ($updates as $k => $v) {
+    if (!empty($updates)) {
+        $parts = [];
+        $vals = [];
+        foreach ($updates as $k => $v) {
             $parts[] = "`" . $conn->real_escape_string($k) . "` = ?";
             $vals[] = $v;
-          }
-          $sql = "UPDATE cursos SET " . implode(', ', $parts) . " WHERE id = ?";
-          $stmt = $conn->prepare($sql);
-          $types = str_repeat('s', count($vals)) . 'i';
-          $bindParams = [];
-          $bindParams[] = & $types;
-          foreach ($vals as $i => $vv) $bindParams[] = & $vals[$i];
-          $bindParams[] = & $curso_id;
-          call_user_func_array([$stmt, 'bind_param'], $bindParams);
-          $stmt->execute();
-          $salvo = true;
-          // refresh curso
-          $curso = $conn->query("SELECT * FROM cursos WHERE id = {$curso_id}")->fetch_assoc();
         }
-      }
+        $sql = "UPDATE cursos SET " . implode(', ', $parts) . " WHERE id = ?";
+        $stmt = $conn->prepare($sql);
+        $types = str_repeat('s', count($vals)) . 'i';
+        $bindParams = [];
+        $bindParams[] = & $types;
+        foreach ($vals as $i => $vv) $bindParams[] = & $vals[$i];
+        $bindParams[] = & $curso_id;
+        call_user_func_array([$stmt, 'bind_param'], $bindParams);
+        $stmt->execute();
+    }
+
+    // Refresh curso data
+    $curso = $conn->query("SELECT * FROM cursos WHERE id = {$curso_id}")->fetch_assoc();
+    $salvo = true;
+}
 
 ?>
 
@@ -177,7 +160,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   </div>
 
   <?php if ($salvo): ?>
-    <div class="alert alert-success">Detalhes salvos com sucesso.</div>
+    <div class="alert alert-success d-flex align-items-center gap-2">
+      <i class="bi bi-check-circle-fill"></i>
+      <span>Todas as alterações foram salvas com sucesso!</span>
+    </div>
   <?php endif; ?>
 
   <?php if ($erro): ?>
@@ -196,88 +182,116 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     </div>
   <?php endif; ?>
 
-  <div class="card card-soft">
-    <div class="card-body">
-      <form method="post" class="row g-3" enctype="multipart/form-data">
-        <div class="col-12 col-md-4">
-          <label class="form-label">Modalidade</label>
-          <select name="modalidade" class="form-select" <?= !$cursoInfosEnabled ? 'disabled' : '' ?>>
-            <?php
-              $opts = ['' => 'Selecione', 'Presencial' => 'Presencial', 'Online' => 'Online', 'Híbrido' => 'Híbrido'];
-              foreach ($opts as $val => $label) {
-                  $selected = ((string)$info['modalidade'] === (string)$val) ? 'selected' : '';
-                  echo "<option value=\"" . htmlspecialchars($val, ENT_QUOTES, 'UTF-8') . "\" {$selected}>" . htmlspecialchars($label, ENT_QUOTES, 'UTF-8') . "</option>";
-              }
-            ?>
-          </select>
-        </div>
+  <!-- UNIFIED FORM - All fields in one form with one save button -->
+  <form method="post" enctype="multipart/form-data">
+    
+    <!-- Card 1: Informações do Curso -->
+    <div class="card card-soft mb-4">
+      <div class="card-header bg-transparent border-0 pt-4 px-4">
+        <h5 class="mb-0 fw-bold"><i class="bi bi-calendar-event me-2 text-primary"></i>Informações do Curso</h5>
+        <small class="text-muted">Datas, local, modalidade e vagas</small>
+      </div>
+      <div class="card-body">
+        <div class="row g-3">
+          <div class="col-12 col-md-4">
+            <label class="form-label">Modalidade</label>
+            <select name="modalidade" class="form-select" <?= !$cursoInfosEnabled ? 'disabled' : '' ?>>
+              <?php
+                $opts = ['' => 'Selecione', 'Presencial' => 'Presencial', 'Online' => 'Online', 'Híbrido' => 'Híbrido'];
+                foreach ($opts as $val => $label) {
+                    $selected = ((string)$info['modalidade'] === (string)$val) ? 'selected' : '';
+                    echo "<option value=\"" . htmlspecialchars($val, ENT_QUOTES, 'UTF-8') . "\" {$selected}>" . htmlspecialchars($label, ENT_QUOTES, 'UTF-8') . "</option>";
+                }
+              ?>
+            </select>
+          </div>
 
-        <div class="col-12 col-md-8">
-          <label class="form-label">Local</label>
-          <input name="local" class="form-control" value="<?= htmlspecialchars((string)$info['local'], ENT_QUOTES, 'UTF-8') ?>" placeholder="Ex: Av. Gen. Ataliba Leonel, 245 - Santana - SP" <?= !$cursoInfosEnabled ? 'disabled' : '' ?>>
-        </div>
+          <div class="col-12 col-md-8">
+            <label class="form-label">Local</label>
+            <input name="local" class="form-control" value="<?= htmlspecialchars((string)$info['local'], ENT_QUOTES, 'UTF-8') ?>" placeholder="Ex: Av. Gen. Ataliba Leonel, 245 - Santana - SP" <?= !$cursoInfosEnabled ? 'disabled' : '' ?>>
+          </div>
 
-        <div class="col-12 col-md-3">
-          <label class="form-label">Data de início</label>
-          <input type="date" name="data_inicio" class="form-control" value="<?= htmlspecialchars((string)$info['data_inicio'], ENT_QUOTES, 'UTF-8') ?>" <?= !$cursoInfosEnabled ? 'disabled' : '' ?>>
-        </div>
+          <div class="col-12 col-md-3">
+            <label class="form-label">Data de início</label>
+            <input type="date" name="data_inicio" class="form-control" value="<?= htmlspecialchars((string)$info['data_inicio'], ENT_QUOTES, 'UTF-8') ?>" <?= !$cursoInfosEnabled ? 'disabled' : '' ?>>
+            <small class="text-muted">Alunos só acessam após essa data</small>
+          </div>
 
-        <div class="col-12 col-md-3">
-          <label class="form-label">Data de fim</label>
-          <input type="date" name="data_fim" class="form-control" value="<?= htmlspecialchars((string)$info['data_fim'], ENT_QUOTES, 'UTF-8') ?>" <?= !$cursoInfosEnabled ? 'disabled' : '' ?>>
-        </div>
+          <div class="col-12 col-md-3">
+            <label class="form-label">Data de fim</label>
+            <input type="date" name="data_fim" class="form-control" value="<?= htmlspecialchars((string)$info['data_fim'], ENT_QUOTES, 'UTF-8') ?>" <?= !$cursoInfosEnabled ? 'disabled' : '' ?>>
+          </div>
 
-        <div class="col-12 col-md-3">
-          <label class="form-label">Turno</label>
-          <select name="turno" class="form-select" <?= !$cursoInfosEnabled ? 'disabled' : '' ?>>
-            <?php
-              $turnos = ['' => 'Selecione', 'Manhã' => 'Manhã', 'Tarde' => 'Tarde', 'Noite' => 'Noite'];
-              foreach ($turnos as $val => $label) {
-                  $selected = ((string)$info['turno'] === (string)$val) ? 'selected' : '';
-                  echo "<option value=\"" . htmlspecialchars($val, ENT_QUOTES, 'UTF-8') . "\" {$selected}>" . htmlspecialchars($label, ENT_QUOTES, 'UTF-8') . "</option>";
-              }
-            ?>
-          </select>
-        </div>
+          <div class="col-12 col-md-3">
+            <label class="form-label">Turno</label>
+            <select name="turno" class="form-select" <?= !$cursoInfosEnabled ? 'disabled' : '' ?>>
+              <?php
+                $turnos = ['' => 'Selecione', 'Manhã' => 'Manhã', 'Tarde' => 'Tarde', 'Noite' => 'Noite'];
+                foreach ($turnos as $val => $label) {
+                    $selected = ((string)$info['turno'] === (string)$val) ? 'selected' : '';
+                    echo "<option value=\"" . htmlspecialchars($val, ENT_QUOTES, 'UTF-8') . "\" {$selected}>" . htmlspecialchars($label, ENT_QUOTES, 'UTF-8') . "</option>";
+                }
+              ?>
+            </select>
+          </div>
 
-        <div class="col-12 col-md-3">
-          <label class="form-label">Vagas</label>
-          <input type="number" name="vagas" class="form-control" value="<?= htmlspecialchars((string)$info['vagas'], ENT_QUOTES, 'UTF-8') ?>" placeholder="Ex: 30" <?= !$cursoInfosEnabled ? 'disabled' : '' ?>>
+          <div class="col-12 col-md-3">
+            <label class="form-label">Vagas</label>
+            <input type="number" name="vagas" class="form-control" value="<?= htmlspecialchars((string)$info['vagas'], ENT_QUOTES, 'UTF-8') ?>" placeholder="Ex: 30" <?= !$cursoInfosEnabled ? 'disabled' : '' ?>>
+          </div>
         </div>
-
-        <div class="col-12 d-flex justify-content-end">
-          <button class="btn btn-primary" <?= !$cursoInfosEnabled ? 'disabled' : '' ?> name="salvar_infos"><i class="bi bi-save me-1"></i>Salvar</button>
-        </div>
-      </form>
+      </div>
     </div>
-  </div>
 
-  <div class="card card-soft mt-4">
-    <div class="card-body">
-      <h5>Módulo (imagem + texto)</h5>
-      <form method="post" enctype="multipart/form-data" class="row g-3 mt-2">
-        <div class="col-12 col-md-6">
-          <label class="form-label">Miniatura (jpg/png)</label>
-          <input name="thumbnail" type="file" accept="image/*" class="form-control">
-          <div class="small text-muted mt-1">Ou cole o caminho existente em <code>uploads/thumbnails/</code> abaixo</div>
-          <input name="thumbnail_path" type="text" class="form-control mt-2" placeholder="uploads/thumbnails/arquivo.png" value="<?= htmlspecialchars((string)($curso['thumbnail'] ?? ''), ENT_QUOTES, 'UTF-8') ?>">
-          <?php if (!empty($curso['thumbnail'])): ?>
-            <div class="mt-2"><img src="<?= htmlspecialchars(ios_url('/' . ltrim((string)$curso['thumbnail'], '/')), ENT_QUOTES, 'UTF-8') ?>" alt="thumb" style="height:80px;object-fit:cover;border-radius:6px;"></div>
-          <?php endif; ?>
-        </div>
+    <!-- Card 2: Mídia e Conteúdo -->
+    <div class="card card-soft mb-4">
+      <div class="card-header bg-transparent border-0 pt-4 px-4">
+        <h5 class="mb-0 fw-bold"><i class="bi bi-image me-2 text-primary"></i>Mídia e Conteúdo</h5>
+        <small class="text-muted">Miniatura e texto explicativo do módulo</small>
+      </div>
+      <div class="card-body">
+        <div class="row g-3">
+          <div class="col-12 col-md-6">
+            <label class="form-label">Miniatura (jpg/png)</label>
+            <input name="thumbnail" type="file" accept="image/*" class="form-control">
+            <div class="small text-muted mt-1">
+              <i class="bi bi-lightbulb text-warning me-1"></i>
+              <strong>Dica:</strong> Use imagens 600×400 pixels para melhor resultado.
+            </div>
+            
+            <div class="mt-3">
+              <label class="form-label text-muted small">Ou digite o caminho existente:</label>
+              <input name="thumbnail_path" type="text" class="form-control form-control-sm" placeholder="uploads/thumbnails/arquivo.png" value="<?= htmlspecialchars((string)($curso['thumbnail'] ?? ''), ENT_QUOTES, 'UTF-8') ?>">
+            </div>
 
-        <div class="col-12 col-md-6">
-          <label class="form-label">Texto didático do módulo</label>
-          <textarea name="modulo_texto" class="form-control" rows="8" placeholder="Explique como funciona o módulo..."><?= htmlspecialchars((string)($curso['modulo_texto'] ?? ''), ENT_QUOTES, 'UTF-8') ?></textarea>
-          <div class="small text-muted mt-1">Vídeos, PDFs e perguntas ficam nas aulas.</div>
-        </div>
+            <?php if (!empty($curso['thumbnail'])): ?>
+              <div class="mt-3 p-3 bg-light rounded">
+                <div class="small text-muted mb-2">Miniatura atual:</div>
+                <img src="<?= htmlspecialchars(ios_url('/' . ltrim((string)$curso['thumbnail'], '/')), ENT_QUOTES, 'UTF-8') ?>" alt="thumb" style="max-height:120px;object-fit:cover;border-radius:8px;">
+              </div>
+            <?php endif; ?>
+          </div>
 
-        <div class="col-12 d-flex justify-content-end">
-          <button class="btn btn-primary" name="salvar_midias"><i class="bi bi-save me-1"></i>Salvar</button>
+          <div class="col-12 col-md-6">
+            <label class="form-label">Texto didático do módulo</label>
+            <textarea name="modulo_texto" class="form-control" rows="8" placeholder="Explique como funciona o módulo, pré-requisitos, como o aluno deve avançar..."><?= htmlspecialchars((string)($curso['modulo_texto'] ?? ''), ENT_QUOTES, 'UTF-8') ?></textarea>
+            <div class="small text-muted mt-1">
+              <i class="bi bi-info-circle me-1"></i>
+              Vídeos, PDFs e perguntas ficam nas aulas.
+            </div>
+          </div>
         </div>
-      </form>
+      </div>
     </div>
-  </div>
+
+    <!-- Single Save Button -->
+    <div class="d-flex justify-content-end gap-2">
+      <a href="cursos.php" class="btn btn-outline-secondary">Cancelar</a>
+      <button type="submit" name="salvar_tudo" class="btn btn-primary btn-lg px-5">
+        <i class="bi bi-check-lg me-2"></i>Salvar Tudo
+      </button>
+    </div>
+  </form>
 </div>
 
 <?php require __DIR__ . '/../partials/footer.php'; ?>

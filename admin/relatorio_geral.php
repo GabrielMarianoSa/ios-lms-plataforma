@@ -130,7 +130,7 @@ $result = $conn->query($query);
 <div class="container py-4">
     <div class="d-flex flex-column flex-lg-row align-items-start align-items-lg-center justify-content-between mb-4 gap-3">
         <div>
-            <h1 class="h3 fw-bold mb-1">📊 Relatório Geral de Cursos</h1>
+            <h1 class="h3 fw-bold mb-1">Relatório Geral de Cursos</h1>
             <div class="text-muted">Visão consolidada de cursos, inscrições e detalhes logísticos.</div>
         </div>
         <div class="d-flex gap-2 flex-wrap">

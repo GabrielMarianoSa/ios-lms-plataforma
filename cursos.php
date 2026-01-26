@@ -7,26 +7,21 @@ $isLoggedIn = isset($_SESSION['user_id']);
 $userId = $isLoggedIn ? (int)$_SESSION['user_id'] : 0;
 $cursoInfosEnabled = ios_table_exists($conn, 'curso_infos');
 
+// Fetch ALL courses from database dynamically
 $sql = "SELECT c.*, ";
 
 if ($cursoInfosEnabled) {
-    $sql .= "ci.modalidade, ci.local, ci.data_inicio, ci.data_fim, ";
+    $sql .= "ci.modalidade, ci.local, ci.data_inicio, ci.data_fim, ci.turno, ci.vagas, ";
 } else {
-    $sql .= "NULL as modalidade, NULL as local, NULL as data_inicio, NULL as data_fim, ";
+    $sql .= "NULL as modalidade, NULL as local, NULL as data_inicio, NULL as data_fim, NULL as turno, NULL as vagas, ";
 }
 
+$sql .= "(SELECT COUNT(*) FROM aulas a WHERE a.curso_id = c.id) AS total_aulas ";
+
 if ($isLoggedIn) {
-     $sql .= "EXISTS(SELECT 1 FROM inscricoes i WHERE i.curso_id = c.id AND i.user_id = {$userId}) AS inscrito, ";
-     $sql .= "EXISTS(SELECT 1 FROM inscricoes i WHERE i.curso_id = c.id AND i.user_id = {$userId} AND (i.status = 'pendente' OR i.status = 'em_analise')) AS pendente, ";
-     $sql .= "(SELECT COUNT(*) FROM aulas a WHERE a.curso_id = c.id) AS total_aulas, ";
-     $sql .= "(
-            SELECT COUNT(DISTINCT p.aula_id)
-            FROM progresso p
-            JOIN aulas a2 ON a2.id = p.aula_id
-            WHERE p.user_id = {$userId} AND p.concluida = 1 AND a2.curso_id = c.id
-        ) AS aulas_concluidas ";
-} else {
-    $sql .= "0 as inscrito, 0 as pendente, 0 as total_aulas, 0 as aulas_concluidas ";
+    $sql .= ", EXISTS(SELECT 1 FROM inscricoes i WHERE i.curso_id = c.id AND i.user_id = {$userId}) AS inscrito ";
+    $sql .= ", EXISTS(SELECT 1 FROM inscricoes i WHERE i.curso_id = c.id AND i.user_id = {$userId} AND (i.status = 'pendente' OR i.status = 'em_analise')) AS pendente ";
+    $sql .= ", (SELECT i.status FROM inscricoes i WHERE i.curso_id = c.id AND i.user_id = {$userId} ORDER BY i.id DESC LIMIT 1) AS meu_status ";
 }
 
 $sql .= "FROM cursos c ";
@@ -36,263 +31,260 @@ if ($cursoInfosEnabled) {
 }
 
 $sql .= "ORDER BY c.id DESC";
-$cursos = $conn->query($sql);
+$cursosResult = $conn->query($sql);
+
+// Convert to array for easier manipulation
+$cursos = [];
+while ($row = $cursosResult->fetch_assoc()) {
+    $cursos[] = $row;
+}
 
 $pageTitle = 'Cursos • IOS';
 $activeNav = 'cursos';
 require __DIR__ . '/partials/header.php';
 
-// Course Definitions (Metadata not in DB yet, or augmenting DB data)
-$categories = [
-    'Tecnologia' => [
-        [
-            'title' => 'Programação Web',
-            'thumb_small' => 'assets/images/thumbs/web_small.jpg', // User will generate
-            'thumb_large' => 'assets/images/thumbs/web_large.jpg', // User will generate
-            'brief' => 'Crie sites e sistemas do zero e entre no mercado de trabalho.',
-            'desc' => 'Aprenda a criar sites e sistemas web modernos. Ideal para quem quer iniciar carreira na tecnologia desenvolvendo raciocínio lógico e criatividade. O mercado busca muito esse profissional e você sairá pronto para criar interfaces incríveis e funcionais.',
-            'icon' => 'bi-code-slash',
-            'color' => 'bg-primary'
-        ],
-        [
-            'title' => 'Cybersegurança',
-            'thumb_small' => 'assets/images/thumbs/cyber_small.jpg',
-            'thumb_large' => 'assets/images/thumbs/cyber_large.jpg',
-            'brief' => 'Proteja o mundo digital contra ameaças e ataques.',
-            'desc' => 'Proteja dados e sistemas contra invasões. Um curso feito para quem gosta de desafios e quer atuar em uma das áreas mais valorizadas da atualidade. Você aprenderá a identificar riscos e criar defesas para garantir a segurança de empresas e pessoas.',
-            'icon' => 'bi-shield-lock',
-            'color' => 'bg-danger'
-        ],
-        [
-            'title' => 'ERP',
-            'thumb_small' => 'assets/images/thumbs/erp_small.jpg',
-            'thumb_large' => 'assets/images/thumbs/erp_large.jpg',
-            'brief' => 'Domine os sistemas que controlam grandes empresas.',
-            'desc' => 'Aprenda a operar sistemas integrados de gestão empresarial (como Protheus). Essencial para quem quer trabalhar em grandes corporações, entendendo como o negócio funciona de ponta a ponta: do financeiro ao estoque.',
-            'icon' => 'bi-hdd-network',
-            'color' => 'bg-info'
-        ],
-        [
-            'title' => 'Backend',
-            'thumb_small' => 'assets/images/thumbs/backend_small.jpg',
-            'thumb_large' => 'assets/images/thumbs/backend_large.jpg',
-            'brief' => 'Descubra a lógica e os bastidores dos aplicativos.',
-            'desc' => 'Cuide do que acontece "por trás das cortinas" dos softwares. Você vai aprender como os dados são processados, armazenados e seguros. Perfeito para quem é curioso, gosta de resolver problemas e entender a lógica profunda da programação.',
-            'icon' => 'bi-server',
-            'color' => 'bg-dark'
-        ]
-    ],
-    'Gestão e Administrativo' => [
-        [
-            'title' => 'Zendesk',
-            'thumb_small' => 'assets/images/thumbs/zendesk_small.jpg',
-            'thumb_large' => 'assets/images/thumbs/zendesk_large.jpg',
-            'brief' => 'Torne-se um especialista em atendimento ao cliente.',
-            'desc' => 'Domine a plataforma de atendimento mais usada no mundo. Este curso é ótimo para quem gosta de se comunicar, ajudar pessoas e busca oportunidades em áreas de Suporte, Customer Success (Sucesso do Cliente) e Relacionamento.',
-            'icon' => 'bi-headset',
-            'color' => 'bg-success'
-        ],
-        [
-            'title' => 'Pacote Office',
-            'thumb_small' => 'assets/images/thumbs/office_small.jpg',
-            'thumb_large' => 'assets/images/thumbs/office_large.jpg',
-            'brief' => 'Domine as ferramentas essenciais de qualquer escritório.',
-            'desc' => 'O pontapé inicial para sua carreira administrativa. Word, Excel e PowerPoint deixarão de ser um mistério. Você aprenderá a criar documentos profissionais, planilhas organizadas e apresentações impactantes.',
-            'icon' => 'bi-grid-3x3-gap',
-            'color' => 'bg-warning text-dark'
-        ],
-        [
-            'title' => 'Rotinas Administrativas',
-            'thumb_small' => 'assets/images/thumbs/admin_small.jpg',
-            'thumb_large' => 'assets/images/thumbs/admin_large.jpg',
-            'brief' => 'Prepare-se para o dia a dia das empresas.',
-            'desc' => 'Aprenda na prática como funciona um escritório: documentação, fluxo de caixa, atendimento corporativo e organização empresarial. O curso certo para quem busca o primeiro emprego e quer chegar preparado.',
-            'icon' => 'bi-file-earmark-text',
-            'color' => 'bg-secondary'
-        ]
-    ]
-];
+// Icon and color mapping based on course title keywords
+function getCourseStyle($titulo) {
+    $titulo = mb_strtolower($titulo);
+    
+    if (str_contains($titulo, 'web') || str_contains($titulo, 'programação') || str_contains($titulo, 'frontend')) {
+        return ['icon' => 'bi-code-slash', 'color' => 'bg-primary'];
+    }
+    if (str_contains($titulo, 'cyber') || str_contains($titulo, 'segurança') || str_contains($titulo, 'security')) {
+        return ['icon' => 'bi-shield-lock', 'color' => 'bg-danger'];
+    }
+    if (str_contains($titulo, 'erp') || str_contains($titulo, 'protheus') || str_contains($titulo, 'sap')) {
+        return ['icon' => 'bi-hdd-network', 'color' => 'bg-info'];
+    }
+    if (str_contains($titulo, 'backend') || str_contains($titulo, 'api') || str_contains($titulo, 'servidor')) {
+        return ['icon' => 'bi-server', 'color' => 'bg-dark'];
+    }
+    if (str_contains($titulo, 'zendesk') || str_contains($titulo, 'atendimento') || str_contains($titulo, 'suporte')) {
+        return ['icon' => 'bi-headset', 'color' => 'bg-success'];
+    }
+    if (str_contains($titulo, 'office') || str_contains($titulo, 'excel') || str_contains($titulo, 'word')) {
+        return ['icon' => 'bi-grid-3x3-gap', 'color' => 'bg-warning'];
+    }
+    if (str_contains($titulo, 'admin') || str_contains($titulo, 'rotinas') || str_contains($titulo, 'gestão')) {
+        return ['icon' => 'bi-file-earmark-text', 'color' => 'bg-secondary'];
+    }
+    if (str_contains($titulo, 'design') || str_contains($titulo, 'figma') || str_contains($titulo, 'ui')) {
+        return ['icon' => 'bi-palette', 'color' => 'bg-pink'];
+    }
+    if (str_contains($titulo, 'data') || str_contains($titulo, 'dados') || str_contains($titulo, 'analytics')) {
+        return ['icon' => 'bi-graph-up', 'color' => 'bg-teal'];
+    }
+    if (str_contains($titulo, 'mobile') || str_contains($titulo, 'app') || str_contains($titulo, 'android') || str_contains($titulo, 'ios')) {
+        return ['icon' => 'bi-phone', 'color' => 'bg-indigo'];
+    }
+    
+    // Default
+    return ['icon' => 'bi-mortarboard', 'color' => 'bg-primary'];
+}
 
-// Fetch DB courses to map IDs and Status
-$dbCourses = [];
-$res = $conn->query("SELECT id, titulo, inscricoes_abertas FROM cursos");
-while($r = $res->fetch_assoc()) {
-    $normalized = mb_strtolower(trim($r['titulo']));
-    // Determine if open: default to true if column is null (legacy compatibility)
-    $isOpen = (isset($r['inscricoes_abertas']) && $r['inscricoes_abertas'] == 0) ? false : true;
-    $dbCourses[$normalized] = [
-        'id' => (int)$r['id'],
-        'open' => $isOpen
-    ];
+function formatDateBR($date) {
+    if (!$date) return null;
+    return date('d/m/Y', strtotime($date));
 }
 ?>
 
 <style>
 .course-card {
-    transition: transform 0.2s, box-shadow 0.2s;
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
     border: none;
     overflow: hidden;
 }
 .course-card:hover {
-    transform: translateY(-5px);
-    box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+    transform: translateY(-8px);
+    box-shadow: 0 20px 40px rgba(89, 0, 179, 0.15);
 }
-.thumb-placeholder {
-    height: 160px; /* Slightly taller */
+.course-thumb {
+    height: 180px;
     display: flex;
     align-items: center;
     justify-content: center;
     font-size: 3.5rem;
     color: white;
-    /* subtle pattern for improvement */
-    background-image: linear-gradient(45deg, rgba(255,255,255,0.1) 25%, transparent 25%, transparent 50%, rgba(255,255,255,0.1) 50%, rgba(255,255,255,0.1) 75%, transparent 75%, transparent);
-    background-size: 20px 20px;
+    position: relative;
+    overflow: hidden;
 }
-.collapse-content {
-    background-color: #f8f9fa;
-    border-radius: 12px; 
-    border-left: 5px solid var(--bs-primary);
+.course-thumb.has-image {
+    background-size: cover;
+    background-position: center;
 }
-/* Enhanced Banner Style */
+.course-thumb.has-image i {
+    display: none;
+}
+.course-thumb::after {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: linear-gradient(to bottom, transparent 60%, rgba(0,0,0,0.2) 100%);
+}
+.course-info-pills {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin-bottom: 1rem;
+}
+.course-info-pills .badge {
+    font-weight: 500;
+    font-size: 0.7rem;
+}
+/* Banner */
 .courses-banner {
-    /* Background image - user can replace url */
     background: url('assets/images/banner-cursos.jpg') center center / cover no-repeat;
-    background-color: var(--ios-purple); /* Fallback */
+    background-color: var(--ios-purple);
     color: white;
-    padding: 100px 0;
+    padding: 80px 0;
     margin-bottom: 3rem;
     border-radius: 0 0 50px 50px;
     position: relative;
     overflow: hidden;
-    transition: all 0.4s ease;
-}
-.courses-banner:hover {
-    transform: scale(1.01);
-    box-shadow: 0 25px 80px rgba(89, 0, 179, 0.35);
 }
 .courses-banner::before {
-    /* Gradient overlay - left side darker for text, right side transparent for image */
     content: '';
     position: absolute;
     top: 0; left: 0; right: 0; bottom: 0;
-    background: linear-gradient(to right, rgba(89, 0, 179, 0.95) 0%, rgba(89, 0, 179, 0.7) 40%, rgba(0,0,0,0.2) 70%, transparent 100%);
+    background: linear-gradient(to right, rgba(89, 0, 179, 0.92) 0%, rgba(89, 0, 179, 0.75) 35%, rgba(89, 0, 179, 0.3) 60%, transparent 80%);
     z-index: 1;
+}
+.empty-state {
+    text-align: center;
+    padding: 4rem 2rem;
+    background: white;
+    border-radius: 20px;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.05);
 }
 </style>
 
 <div class="courses-banner shadow-lg">
     <div class="container position-relative" style="z-index: 2;">
         <div class="row align-items-center">
-            <div class="col-lg-6 text-start">
-                <h1 class="display-3 fw-bold mb-3 text-white">Nossos Cursos</h1>
-                <p class="h2 fw-light text-white mb-0" style="line-height: 1.4;">
-                    Conheça as formações que vão <br>
-                    <span class="fw-bold text-warning">transformar sua carreira.</span>
+            <div class="col-lg-7 text-start">
+                <h1 class="display-4 fw-bold mb-3 text-white">Nossos Cursos</h1>
+                <p class="h4 fw-light text-white mb-0" style="line-height: 1.5;">
+                    Formações que vão <span class="fw-bold text-warning">transformar sua carreira.</span>
                 </p>
-            </div>
-            <div class="col-lg-6 d-none d-lg-block">
-                <!-- Espaço livre para a arte do JPG brilhar no lado direito -->
             </div>
         </div>
     </div>
 </div>
 
 <div class="container pb-5">
-    <?php foreach ($categories as $catName => $courses): ?>
-        <div class="mb-5">
-            <h2 class="fw-bold mb-4 border-start border-5 border-primary ps-3"><?= htmlspecialchars($catName) ?></h2>
-            
-            <div class="row g-4">
-                <?php foreach ($courses as $index => $course): 
-                    $safeId = 'course-' . md5($course['title']);
-                    $dbId = 0;
-                    $isOpen = true; // Default to open if not found in DB (conceptual placeholder)
-
-                    foreach($dbCourses as $dName => $dInfo) {
-                        if (str_contains(mb_strtolower($dName), mb_strtolower($course['title'])) || str_contains(mb_strtolower($course['title']), mb_strtolower($dName))) {
-                            $dbId = $dInfo['id'];
-                            $isOpen = $dInfo['open'];
-                            break;
-                        }
-                    }
-                ?>
-                <div class="col-md-6 col-lg-3">
-                    <div class="card h-100 course-card rounded-4 shadow-sm">
-                        <!-- Placeholder Thumb -->
-                        <div class="thumb-placeholder <?= $course['color'] ?>">
-                            <i class="bi <?= $course['icon'] ?>"></i>
-                        </div>
-                        
-                        <div class="card-body d-flex flex-column">
-                            <h5 class="fw-bold mb-2"><?= htmlspecialchars($course['title']) ?></h5>
-                            <p class="text-muted small mb-3 flex-grow-1"><?= htmlspecialchars($course['brief']) ?></p>
-                            
-                            <button class="btn btn-outline-primary w-100 rounded-pill fw-semibold mt-auto" type="button" data-bs-toggle="collapse" data-bs-target="#<?= $safeId ?>" aria-expanded="false">
-                                Ver Detalhes <i class="bi bi-chevron-down ms-1"></i>
-                            </button>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="col-12 collapse" id="<?= $safeId ?>">
-                    <div class="collapse-content p-4 shadow-sm mt-0 mb-4 position-relative">
-                        <button type="button" class="btn-close position-absolute top-0 end-0 m-3" data-bs-toggle="collapse" data-bs-target="#<?= $safeId ?>"></button>
-                        <div class="row align-items-center">
-                            <div class="col-md-3 text-center mb-3 mb-md-0 d-none d-md-block">
-                                <div class="ratio ratio-1x1 rounded- circle overflow-hidden bg-secondary rounded-4 shadow-sm">
-                                    <div class="d-flex align-items-center justify-content-center text-white h-100 <?= $course['color'] ?>">
-                                        <i class="bi <?= $course['icon'] ?> fs-1"></i>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="col-md-9">
-                                <h3 class="fw-bold text-primary mb-3"><?= htmlspecialchars($course['title']) ?></h3>
-                                <p class="lead fs-6 mb-4"><?= htmlspecialchars($course['desc']) ?></p>
-                                
-                                <div class="d-flex gap-3 flex-wrap">
-                                    <?php if ($isLoggedIn): ?>
-                                        <?php if($dbId > 0 && $isOpen): ?>
-                                            <a href="<?= ios_url('/inscrever.php?curso_id=' . $dbId) ?>" class="btn btn-primary btn-lg rounded-pill px-5 shadow-sm">
-                                                Quero me Inscrever Agora!
-                                            </a>
-                                        <?php else: ?>
-                                            <button disabled class="btn btn-secondary btn-lg rounded-pill px-4">
-                                                <?= ($dbId > 0 && !$isOpen) ? 'Inscrições Encerradas' : 'Em breve' ?>
-                                            </button>
-                                        <?php endif; ?>
-                                    <?php else: ?>
-                                        <?php if($dbId > 0 && !$isOpen): ?>
-                                            <button disabled class="btn btn-secondary btn-lg rounded-pill px-4">Inscrições Encerradas</button>
-                                        <?php else: ?>
-                                            <a href="<?= ios_url('/auth/login.php?redirect=' . urlencode('inscrever.php?curso_id=' . ($dbId ?: 0))) ?>" class="btn btn-primary btn-lg rounded-pill px-5 shadow-sm">
-                                                Inscrever-se
-                                            </a>
-                                            <div class="d-flex align-items-center text-muted small">
-                                                <i class="bi bi-info-circle me-1"></i> Você precisará acessar a Área do Aluno.
-                                            </div>
-                                        <?php endif; ?>
-                                    <?php endif; ?>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                <?php endforeach; ?>
+    
+    <?php if (empty($cursos)): ?>
+        <div class="empty-state">
+            <div class="mb-4">
+                <i class="bi bi-journal-x display-1 text-muted opacity-50"></i>
+            </div>
+            <h3 class="fw-bold mb-3">Nenhum curso disponível no momento</h3>
+            <p class="text-muted mb-4">Estamos preparando novos cursos incríveis para você. Volte em breve!</p>
+            <a href="<?= ios_url('/') ?>" class="btn btn-primary rounded-pill px-4">Voltar ao Início</a>
+        </div>
+    <?php else: ?>
+        
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <div>
+                <h2 class="fw-bold mb-1">Cursos Disponíveis</h2>
+                <p class="text-muted mb-0"><?= count($cursos) ?> curso<?= count($cursos) > 1 ? 's' : '' ?> encontrado<?= count($cursos) > 1 ? 's' : '' ?></p>
             </div>
         </div>
-    <?php endforeach; ?>
-</div>
 
-<script>
-document.addEventListener('DOMContentLoaded', () => {
-    const collapses = document.querySelectorAll('.collapse');
-    collapses.forEach(el => {
-        el.addEventListener('shown.bs.collapse', (e) => {
-            const y = e.target.getBoundingClientRect().top + window.scrollY - 100;
-            window.scrollTo({top: y, behavior: 'smooth'});
-        });
-    });
-});
-</script>
+        <div class="row g-4">
+            <?php foreach ($cursos as $curso): 
+                $style = getCourseStyle($curso['titulo']);
+                $isOpen = !isset($curso['inscricoes_abertas']) || $curso['inscricoes_abertas'] != 0;
+                $hasThumbnail = !empty($curso['thumbnail']);
+                $safeId = 'curso-' . (int)$curso['id'];
+                
+                // User status
+                $jaInscrito = $isLoggedIn && !empty($curso['inscrito']);
+                $pendente = $isLoggedIn && !empty($curso['pendente']);
+                $meuStatus = $isLoggedIn ? ($curso['meu_status'] ?? null) : null;
+            ?>
+            <div class="col-md-6 col-lg-4">
+                <div class="card h-100 course-card rounded-4 shadow-sm">
+                    <!-- Thumbnail / Placeholder -->
+                    <div class="course-thumb <?= $style['color'] ?> <?= $hasThumbnail ? 'has-image' : '' ?>" 
+                         <?php if ($hasThumbnail): ?>style="background-image: url('<?= htmlspecialchars(ios_url('/' . ltrim($curso['thumbnail'], '/'))) ?>')"<?php endif; ?>>
+                        <i class="bi <?= $style['icon'] ?>"></i>
+                    </div>
+                    
+                    <div class="card-body d-flex flex-column">
+                        <h5 class="fw-bold mb-2"><?= htmlspecialchars($curso['titulo']) ?></h5>
+                        
+                        <!-- Info Pills -->
+                        <div class="course-info-pills">
+                            <?php if (!empty($curso['carga_horaria'])): ?>
+                                <span class="badge bg-light text-dark"><i class="bi bi-clock me-1"></i><?= (int)$curso['carga_horaria'] ?>h</span>
+                            <?php endif; ?>
+                            <?php if (!empty($curso['modalidade'])): ?>
+                                <span class="badge bg-light text-dark"><i class="bi bi-geo-alt me-1"></i><?= htmlspecialchars($curso['modalidade']) ?></span>
+                            <?php endif; ?>
+                            <?php if (!empty($curso['turno'])): ?>
+                                <span class="badge bg-light text-dark"><i class="bi bi-sun me-1"></i><?= htmlspecialchars($curso['turno']) ?></span>
+                            <?php endif; ?>
+                            <?php if (!empty($curso['total_aulas'])): ?>
+                                <span class="badge bg-light text-dark"><i class="bi bi-play-circle me-1"></i><?= (int)$curso['total_aulas'] ?> aulas</span>
+                            <?php endif; ?>
+                        </div>
+                        
+                        <!-- Description -->
+                        <p class="text-muted small mb-3 flex-grow-1" style="display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden;">
+                            <?= htmlspecialchars($curso['descricao'] ?? 'Aprenda habilidades essenciais para o mercado de trabalho.') ?>
+                        </p>
+                        
+                        <!-- Dates if available -->
+                        <?php if (!empty($curso['data_inicio'])): ?>
+                            <div class="small text-muted mb-3">
+                                <i class="bi bi-calendar-event me-1"></i>
+                                Início: <strong><?= formatDateBR($curso['data_inicio']) ?></strong>
+                                <?php if (!empty($curso['data_fim'])): ?>
+                                    até <?= formatDateBR($curso['data_fim']) ?>
+                                <?php endif; ?>
+                            </div>
+                        <?php endif; ?>
+                        
+                        <!-- Actions -->
+                        <div class="d-flex gap-2 mt-auto">
+                            <?php if ($isLoggedIn): ?>
+                                <?php if ($jaInscrito && ios_is_inscricao_aprovada($meuStatus ?? '')): ?>
+                                    <a href="<?= ios_url('/curso.php?id=' . (int)$curso['id']) ?>" class="btn btn-primary w-100 rounded-pill">
+                                        <i class="bi bi-play-fill me-1"></i>Acessar Curso
+                                    </a>
+                                <?php elseif ($pendente): ?>
+                                    <button class="btn btn-warning w-100 rounded-pill" disabled>
+                                        <i class="bi bi-hourglass-split me-1"></i>Em Análise
+                                    </button>
+                                <?php elseif ($isOpen): ?>
+                                    <a href="<?= ios_url('/inscrever.php?curso_id=' . (int)$curso['id']) ?>" class="btn btn-primary w-100 rounded-pill">
+                                        <i class="bi bi-check2-square me-1"></i>Inscrever-se
+                                    </a>
+                                <?php else: ?>
+                                    <button class="btn btn-secondary w-100 rounded-pill" disabled>
+                                        <i class="bi bi-lock me-1"></i>Inscrições Fechadas
+                                    </button>
+                                <?php endif; ?>
+                            <?php else: ?>
+                                <?php if ($isOpen): ?>
+                                    <a href="<?= ios_url('/auth/login.php?redirect=' . urlencode('/inscrever.php?curso_id=' . (int)$curso['id'])) ?>" class="btn btn-primary w-100 rounded-pill">
+                                        <i class="bi bi-box-arrow-in-right me-1"></i>Entrar para Inscrever
+                                    </a>
+                                <?php else: ?>
+                                    <button class="btn btn-secondary w-100 rounded-pill" disabled>
+                                        <i class="bi bi-lock me-1"></i>Inscrições Fechadas
+                                    </button>
+                                <?php endif; ?>
+                            <?php endif; ?>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <?php endforeach; ?>
+        </div>
+        
+    <?php endif; ?>
+</div>
 
 <?php require __DIR__ . '/partials/footer.php'; ?>

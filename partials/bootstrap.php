@@ -5,10 +5,20 @@ declare(strict_types=1);
 if (!function_exists('ios_base_path')) {
     function ios_base_path(): string
     {
-        $scriptName = str_replace('\\', '/', $_SERVER['SCRIPT_NAME'] ?? '/');
-        $parts = explode('/', trim($scriptName, '/'));
-        $root = $parts[0] ?? '';
-        return $root !== '' ? '/' . $root : '';
+        // Detecta se está em localhost (Laragon usa subpasta /ios)
+        $isLocalhost = in_array($_SERVER['SERVER_NAME'] ?? '', ['localhost', '127.0.0.1']) 
+                       || strpos($_SERVER['SERVER_NAME'] ?? '', '.test') !== false;
+        
+        if ($isLocalhost) {
+            // Localhost: retorna /ios
+            $scriptName = str_replace('\\', '/', $_SERVER['SCRIPT_NAME'] ?? '/');
+            $parts = explode('/', trim($scriptName, '/'));
+            $root = $parts[0] ?? '';
+            return $root !== '' ? '/' . $root : '';
+        }
+        
+        // Produção: arquivos estão na raiz do htdocs
+        return '';
     }
 }
 

@@ -1,0 +1,12 @@
+.git
+.gitignore
+.vscode
+
+# Local/exports
+*.sql
+banco_ios_*
+ios_deploy
+
+# OS
+Thumbs.db
+.DS_Store

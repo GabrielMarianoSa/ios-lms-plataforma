@@ -163,7 +163,7 @@ require __DIR__ . '/../partials/header.php';
           <?php endif; ?>
         </div>
         <div>
-          <h1 class="h3 fw-bold mb-1">Olá, <?= htmlspecialchars(explode(' ', $user['nome'])[0] ?? 'Aluno', ENT_QUOTES, 'UTF-8') ?>! 👋</h1>
+          <h1 class="h3 fw-bold mb-1">Olá, <?= htmlspecialchars(explode(' ', $user['nome'])[0] ?? 'Aluno', ENT_QUOTES, 'UTF-8') ?>!</h1>
           <p class="text-muted mb-0">Continue sua jornada de aprendizado.</p>
         </div>
     </div>
