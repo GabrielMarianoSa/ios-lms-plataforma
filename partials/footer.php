@@ -1,0 +1,16 @@
+</main>
+
+<footer class="border-top bg-white">
+  <div class="container py-4 small text-muted d-flex flex-column flex-md-row justify-content-between gap-2">
+    <div>
+      <strong class="text-body">IOS</strong> &copy; <?= date('Y') ?> · Instituto da Oportunidade Social
+    </div>
+    <div>
+      <a class="text-decoration-none" href="https://www.ios.org.br" target="_blank" rel="noreferrer">Conheça o IOS</a>
+    </div>
+  </div>
+</footer>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

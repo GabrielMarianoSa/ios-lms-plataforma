@@ -1,0 +1,38 @@
+# Sensitive files - PROTECT BACKEND
+/config/db.php
+
+# Dependencies
+/vendor
+/node_modules
+
+# IDE and Editor
+.vscode/
+*.log
+*.swp
+*.swo
+*~
+
+# Upload directories (keep structure but ignore content)
+uploads/aulas/*
+uploads/avatars/*
+uploads/materials/*
+uploads/thumbnails/*
+!uploads/aulas/.gitkeep
+!uploads/avatars/.gitkeep
+!uploads/materials/.gitkeep
+!uploads/thumbnails/.gitkeep
+
+# Assets uploads
+assets/uploads/*
+!assets/uploads/.gitkeep
+
+# OS generated files
+.DS_Store
+Thumbs.db
+
+# Temporary files
+*.tmp
+*.bak
+
+# Session files
+*.session.sql

@@ -40,6 +40,15 @@ Sistema web desenvolvido em PHP para gerenciamento de cursos, alunos e aulas, in
 3. Importar tabelas
 4. Rodar em `http://localhost/ios`
 
+## Extras (opcionais)
+
+### Dados adicionais do curso (datas/local/modalidade)
+
+Para deixar a página de cursos 100% dinâmica com datas, local, modalidade, turno e vagas **sem alterar tabelas existentes**, você pode criar uma tabela opcional `curso_infos`.
+
+- SQL: `sql/curso_infos.sql` (execute no banco `ios`)
+- Tela admin para editar: `admin/curso_detalhes.php?curso_id=ID`
+
 ## Diferenciais
 
 Projeto desenvolvido com foco em ambiente corporativo, integrações e plataformas educacionais.

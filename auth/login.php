@@ -2,6 +2,8 @@
 session_start();
 require '../config/db.php';
 
+require __DIR__ . '/../partials/bootstrap.php';
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $email = $_POST['email'];
     $senha = $_POST['senha'];
@@ -15,6 +17,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if ($user && password_verify($senha, $user['senha'])) {
         $_SESSION['user_id'] = $user['id'];
         $_SESSION['tipo'] = $user['tipo'];
+        // set avatar path in session if present
+        if (!empty($user['avatar'])) {
+            $_SESSION['avatar'] = ios_url('/assets/uploads/avatars/' . $user['avatar']);
+        } else {
+            unset($_SESSION['avatar']);
+        }
 
         header("Location: ../index.php");
         exit;
@@ -24,12 +32,43 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 }
 ?>
 
-<h2>Login - IOS</h2>
+<?php
+$pageTitle = 'Entrar • IOS';
+require __DIR__ . '/../partials/header.php';
+?>
 
-<?php if (isset($erro)) echo "<p style='color:red'>$erro</p>"; ?>
+<div class="container">
+    <div class="row justify-content-center">
+        <div class="col-12 col-md-8 col-lg-5">
+            <div class="card card-soft">
+                <div class="card-body p-4">
+                    <h1 class="h4 mb-1">Entrar</h1>
+                    <p class="text-muted mb-3">Acesse sua conta para se inscrever e acompanhar cursos.</p>
 
-<form method="POST">
-    <input type="email" name="email" placeholder="Email" required><br><br>
-    <input type="password" name="senha" placeholder="Senha" required><br><br>
-    <button type="submit">Entrar</button>
-</form>
+                    <?php if (isset($erro)): ?>
+                        <div class="alert alert-danger" role="alert"><?= htmlspecialchars($erro, ENT_QUOTES, 'UTF-8') ?></div>
+                    <?php endif; ?>
+
+                    <form method="POST" class="vstack gap-3">
+                        <div>
+                            <label class="form-label">Email</label>
+                            <input type="email" name="email" class="form-control" placeholder="seuemail@exemplo.com" required>
+                        </div>
+                        <div>
+                            <label class="form-label">Senha</label>
+                            <input type="password" name="senha" class="form-control" placeholder="••••••••" required>
+                        </div>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="bi bi-box-arrow-in-right me-1"></i>Entrar
+                        </button>
+                    </form>
+
+                    <hr>
+                    <div class="small text-muted">Não tem conta? <a href="register.php">Cadastre-se</a>.</div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<?php require __DIR__ . '/../partials/footer.php'; ?>
