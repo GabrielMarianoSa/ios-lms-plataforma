@@ -12,9 +12,11 @@ COPY . /var/www/html/
 # Permissões
 RUN chown -R www-data:www-data /var/www/html
 
-# Railway usa $PORT, Apache precisa escutar nessa porta
-RUN sed -i 's/80/${PORT}/g' /etc/apache2/sites-available/000-default.conf /etc/apache2/ports.conf
+# Configura Apache para usar variável PORT do Railway
+ENV PORT=8080
+RUN sed -i 's/Listen 80/Listen ${PORT}/g' /etc/apache2/ports.conf && \
+    sed -i 's/:80/:${PORT}/g' /etc/apache2/sites-available/000-default.conf
 
-EXPOSE ${PORT}
+EXPOSE 8080
 
-CMD ["apache2-foreground"]
+CMD ["sh", "-c", "sed -i \"s/\\${PORT}/$PORT/g\" /etc/apache2/ports.conf /etc/apache2/sites-available/000-default.conf && apache2-foreground"]
