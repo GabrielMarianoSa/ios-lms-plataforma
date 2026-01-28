@@ -6,6 +6,20 @@ if (ob_get_level() === 0) {
     ob_start();
 }
 
+if (!defined('IOS_BUILD')) {
+    $sha = getenv('RAILWAY_GIT_COMMIT_SHA')
+        ?: getenv('RAILWAY_COMMIT_SHA')
+        ?: getenv('GITHUB_SHA')
+        ?: getenv('COMMIT_SHA')
+        ?: '';
+    define('IOS_BUILD', $sha !== '' ? substr($sha, 0, 12) : 'local');
+}
+
+// Useful to verify deploy/version in Railway (check response headers in DevTools)
+if (!headers_sent()) {
+    header('X-IOS-Build: ' . IOS_BUILD);
+}
+
 if (session_status() !== PHP_SESSION_ACTIVE) {
     session_start();
 }
