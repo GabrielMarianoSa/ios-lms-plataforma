@@ -1,5 +1,5 @@
 <?php
-session_start();
+require __DIR__ . '/partials/bootstrap.php';
 require 'config/db.php';
 
 $pageTitle = 'Instituto da Oportunidade Social • Plataforma de Cursos';

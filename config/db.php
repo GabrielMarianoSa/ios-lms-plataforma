@@ -2,8 +2,9 @@
 /**
  * Configuração do Banco de Dados
  * 
- * PARA PRODUÇÃO (InfinityFree, 000webhost, etc):
- * Altere as variáveis abaixo com os dados do seu servidor
+ * RECOMENDADO:
+ * - Local: usar MySQL do Laragon (host=localhost, user=root, db=ios)
+ * - Produção (Railway/Cloud): usar variáveis de ambiente
  */
 
 // Detecta se está em localhost ou produção
@@ -11,11 +12,14 @@ $isLocalhost = in_array($_SERVER['SERVER_NAME'] ?? '', ['localhost', '127.0.0.1'
                || strpos($_SERVER['SERVER_NAME'] ?? '', '.test') !== false;
 
 // Permite configuração via variáveis de ambiente (ex: Railway)
-// Use: IOS_DB_HOST, IOS_DB_USER, IOS_DB_PASS, IOS_DB_NAME
-$envHost = getenv('IOS_DB_HOST') ?: '';
-$envUser = getenv('IOS_DB_USER') ?: '';
-$envPass = getenv('IOS_DB_PASS') ?: '';
-$envDb   = getenv('IOS_DB_NAME') ?: '';
+// Preferência:
+// - IOS_DB_HOST, IOS_DB_USER, IOS_DB_PASS, IOS_DB_NAME
+// Compatibilidade Railway (MySQL plugin costuma expor):
+// - MYSQLHOST, MYSQLUSER, MYSQLPASSWORD, MYSQLDATABASE
+$envHost = getenv('IOS_DB_HOST') ?: (getenv('MYSQLHOST') ?: '');
+$envUser = getenv('IOS_DB_USER') ?: (getenv('MYSQLUSER') ?: '');
+$envPass = getenv('IOS_DB_PASS') ?: (getenv('MYSQLPASSWORD') ?: '');
+$envDb   = getenv('IOS_DB_NAME') ?: (getenv('MYSQLDATABASE') ?: '');
 
 if ($isLocalhost) {
     // ===== CONFIGURAÇÃO LOCAL (Laragon) =====
@@ -30,11 +34,9 @@ if ($isLocalhost) {
     $pass = $envPass;
     $db   = $envDb;
 } else {
-    // ===== CONFIGURAÇÃO PRODUÇÃO (InfinityFree) =====
-    $host = "sql308.infinityfree.com";
-    $user = "if0_40996471";
-    $pass = "c61UIRHRkC";
-    $db   = "if0_40996471_iosprocessoseletivo";
+    // Produção sem ENV configurado: falhar com mensagem clara (evita credenciais hardcoded no GitHub)
+    http_response_code(500);
+    die('Banco não configurado. Defina IOS_DB_HOST/IOS_DB_USER/IOS_DB_PASS/IOS_DB_NAME (ou MYSQLHOST/MYSQLUSER/MYSQLPASSWORD/MYSQLDATABASE).');
 }
 
 $conn = new mysqli($host, $user, $pass, $db);

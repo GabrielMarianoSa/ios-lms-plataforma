@@ -22,7 +22,17 @@ if (isset($conn) && $conn instanceof mysqli) {
         $conn->query("ALTER TABLE inscricoes ADD COLUMN data_inicio DATE DEFAULT NULL");
     }
 
-    // Seed Courses (Ensure required courses exist)
+    // Seed Courses (one-time-ish): only seed when table is empty
+    $countRes = $conn->query('SELECT COUNT(*) AS total FROM cursos');
+    $totalCursos = 0;
+    if ($countRes && ($r = $countRes->fetch_assoc())) {
+        $totalCursos = (int)($r['total'] ?? 0);
+    }
+
+    if ($totalCursos > 0) {
+        return;
+    }
+
     $coursesToSeed = [
         'Programação Web' => ['desc' => 'Aprenda HTML, CSS e JavaScript.', 'ch' => 120],
         'Cybersegurança' => ['desc' => 'Fundamentos de segurança da informação e proteção.', 'ch' => 80],

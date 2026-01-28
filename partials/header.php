@@ -5,10 +5,6 @@
 
 require_once __DIR__ . '/bootstrap.php';
 
-if (session_status() !== PHP_SESSION_ACTIVE) {
-    session_start();
-}
-
 $title = isset($pageTitle) && trim((string)$pageTitle) !== '' ? (string)$pageTitle : 'IOS - Plataforma de Cursos';
 $active = $activeNav ?? '';
 $adminArea = (bool)($isAdminArea ?? false);

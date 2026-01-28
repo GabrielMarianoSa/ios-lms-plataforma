@@ -1,5 +1,5 @@
 <?php
-session_start();
+require __DIR__ . '/partials/bootstrap.php';
 require __DIR__ . '/config/db.php';
 
 $pageTitle = 'IOS • Instituto da Oportunidade Social';

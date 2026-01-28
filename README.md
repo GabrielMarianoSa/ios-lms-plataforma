@@ -40,6 +40,17 @@ Sistema web desenvolvido em PHP para gerenciamento de cursos, alunos e aulas, in
 3. Importar tabelas
 4. Rodar em `http://localhost/ios`
 
+## Deploy (Railway)
+
+Configure as variáveis de ambiente do banco (MySQL/MariaDB) no Railway:
+
+- `IOS_DB_HOST`
+- `IOS_DB_USER`
+- `IOS_DB_PASS`
+- `IOS_DB_NAME`
+
+Compatibilidade: se o Railway expor variáveis no padrão `MYSQLHOST`, `MYSQLUSER`, `MYSQLPASSWORD`, `MYSQLDATABASE`, o projeto também reconhece.
+
 ## Extras (opcionais)
 
 ### Dados adicionais do curso (datas/local/modalidade)
