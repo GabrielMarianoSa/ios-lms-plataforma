@@ -45,11 +45,16 @@ Sistema web desenvolvido em PHP para gerenciamento de cursos, alunos e aulas, in
 Configure as variáveis de ambiente do banco (MySQL/MariaDB) no Railway:
 
 - `IOS_DB_HOST`
+- `IOS_DB_PORT` (opcional, padrão 3306)
 - `IOS_DB_USER`
 - `IOS_DB_PASS`
 - `IOS_DB_NAME`
 
+Alternativa (URL única): `IOS_DB_URL` (ex: `mysql://user:pass@host:3306/database`)
+
 Compatibilidade: se o Railway expor variáveis no padrão `MYSQLHOST`, `MYSQLUSER`, `MYSQLPASSWORD`, `MYSQLDATABASE`, o projeto também reconhece.
+
+Porta: também reconhece `MYSQLPORT`. Se existir `DATABASE_URL`/`MYSQL_URL`, o projeto tenta parsear automaticamente.
 
 ## Extras (opcionais)
 
