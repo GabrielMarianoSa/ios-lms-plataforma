@@ -3,6 +3,8 @@ require __DIR__ . '/../config/db.php';
 
 require __DIR__ . '/../partials/bootstrap.php';
 
+$pageTitle = 'Cadastro • IOS';
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $nome  = $_POST['nome'];
     $email = $_POST['email'];
@@ -13,11 +15,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $stmt->execute();
 
     header("Location: login.php");
+    exit;
 }
-?>
 
-<?php
-$pageTitle = 'Cadastro • IOS';
 require __DIR__ . '/../partials/header.php';
 ?>
 

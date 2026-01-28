@@ -2,6 +2,10 @@
 
 declare(strict_types=1);
 
+if (session_status() !== PHP_SESSION_ACTIVE) {
+    session_start();
+}
+
 if (!function_exists('ios_base_path')) {
     function ios_base_path(): string
     {
