@@ -132,7 +132,7 @@ function formatDateBR($date) {
 }
 /* Banner */
 .courses-banner {
-    background: url('assets/images/banner-cursos.jpg') center center / cover no-repeat;
+    background: url('assets/images/banner-cursos.jpg') center 25% / cover no-repeat;
     background-color: var(--ios-purple);
     color: white;
     padding: 80px 0;

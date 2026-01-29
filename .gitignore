@@ -2,6 +2,11 @@
 /vendor
 /node_modules
 
+# Environment Variables (API Keys, Database Credentials)
+.env
+.env.local
+.env.production
+
 # IDE and Editor
 .vscode/
 *.log

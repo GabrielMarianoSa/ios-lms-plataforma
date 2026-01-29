@@ -5,6 +5,46 @@ require __DIR__ . '/config/db.php';
 $pageTitle = 'IOS • Instituto da Oportunidade Social';
 $activeNav = 'home';
 require __DIR__ . '/partials/header.php';
+
+// Conteúdo editável (se tabelas existirem)
+$__content = [];
+$__partners = [];
+if (isset($conn) && ($conn instanceof mysqli) && ios_table_exists($conn, 'site_conteudo')) {
+    $res = $conn->query("SELECT chave, valor FROM site_conteudo");
+    if ($res) {
+        while ($row = $res->fetch_assoc()) {
+            $__content[(string)$row['chave']] = (string)$row['valor'];
+        }
+    }
+}
+
+if (isset($conn) && ($conn instanceof mysqli) && ios_table_exists($conn, 'site_parceiros')) {
+    $res = $conn->query("SELECT nome, logo FROM site_parceiros WHERE ativo = 1 ORDER BY ordem ASC, id ASC");
+    if ($res) {
+        while ($row = $res->fetch_assoc()) {
+            $__partners[] = [
+                'nome' => (string)$row['nome'],
+                'logo' => (string)$row['logo'],
+            ];
+        }
+    }
+}
+
+function ios_content_value(array $content, string $key, string $default = ''): string {
+    $v = $content[$key] ?? '';
+    $v = trim((string)$v);
+    return $v !== '' ? $v : $default;
+}
+
+$homeBadge = ios_content_value($__content, 'home_badge', 'Transformando futuros');
+$homeTitle = ios_content_value($__content, 'home_titulo', 'Oportunidade real para quem quer vencer.');
+$homeSubtitle = ios_content_value($__content, 'home_subtitulo', 'Cursos gratuitos de tecnologia e gestão para jovens e pessoas com deficiência. Prepare-se para o mercado de trabalho com quem entende do assunto.');
+$homeCtaText = ios_content_value($__content, 'home_cta_texto', 'Inscreva-se agora');
+
+$statsAnos = (int)ios_content_value($__content, 'stats_anos', '24');
+$statsAlunosFormados = (int)ios_content_value($__content, 'stats_alunos_formados', '50000');
+$statsAlunosAno = (int)ios_content_value($__content, 'stats_alunos_ano', '1000');
+$statsEmpregabilidade = (int)ios_content_value($__content, 'stats_empregabilidade', '83');
 ?>
 
 <!-- Hero Section -->
@@ -13,19 +53,19 @@ require __DIR__ . '/partials/header.php';
         <div class="row align-items-center gy-5">
             <div class="col-lg-6 fade-up-enter">
                 <div class="ios-badge mb-4">
-                    Transformando Futuros
+                    <?= htmlspecialchars($homeBadge) ?>
                 </div>
                 <h1 class="hero-title">
-                    Oportunidade real para quem quer vencer.
+                    <?= htmlspecialchars($homeTitle) ?>
                 </h1>
                 <p class="hero-subtitle">
-                    Cursos gratuitos de tecnologia e gestão para jovens e pessoas com deficiência. Prepare-se para o mercado de trabalho com quem entende do assunto.
+                    <?= htmlspecialchars($homeSubtitle) ?>
                 </p>
                 
                 <div class="d-flex flex-wrap gap-3">
                     <?php if (!isset($_SESSION['user_id'])): ?>
                         <a href="<?= ios_url('/auth/register.php') ?>" class="btn-primary-ios">
-                            Inscreva-se Agora
+                            <?= htmlspecialchars($homeCtaText) ?>
                         </a>
                         <a href="<?= ios_url('/auth/login.php') ?>" class="btn-outline-ios">
                             Já sou Aluno
@@ -76,25 +116,25 @@ require __DIR__ . '/partials/header.php';
         <div class="row g-4 justify-content-center">
             <div class="col-6 col-md-3 border-end-md">
                 <div class="stat-item text-center">
-                    <div class="stat-number fw-bold display-4 text-primary" data-val="24" data-suffix="">0</div>
-                    <div class="stat-label text-muted fw-semibold">Anos de História</div>
+                    <div class="stat-number fw-bold display-4 text-primary" data-val="<?= (int)$statsAnos ?>" data-suffix="">0</div>
+                    <div class="stat-label text-muted fw-semibold">Anos de história</div>
                 </div>
             </div>
             <div class="col-6 col-md-3 border-end-md">
                 <div class="stat-item text-center">
-                    <div class="stat-number fw-bold display-4 text-primary" data-val="50000" data-prefix="+ " data-suffix=" mil">0</div>
-                    <div class="stat-label text-muted fw-semibold">Alunos Formados</div>
+                    <div class="stat-number fw-bold display-4 text-primary" data-val="<?= (int)$statsAlunosFormados ?>" data-prefix="+ " data-suffix=" mil">0</div>
+                    <div class="stat-label text-muted fw-semibold">Alunos formados</div>
                 </div>
             </div>
             <div class="col-6 col-md-3 border-end-md">
                 <div class="stat-item text-center">
-                    <div class="stat-number fw-bold display-4 text-primary" data-val="1000" data-suffix="+">0</div>
+                    <div class="stat-number fw-bold display-4 text-primary" data-val="<?= (int)$statsAlunosAno ?>" data-suffix="+">0</div>
                     <div class="stat-label text-muted fw-semibold">Mais de mil alunos por ano</div>
                 </div>
             </div>
             <div class="col-6 col-md-3">
                 <div class="stat-item text-center">
-                    <div class="stat-number fw-bold display-4 text-primary" data-val="83" data-suffix="%">0%</div>
+                    <div class="stat-number fw-bold display-4 text-primary" data-val="<?= (int)$statsEmpregabilidade ?>" data-suffix="%">0%</div>
                     <div class="stat-label text-muted fw-semibold">Empregabilidade</div>
                 </div>
             </div>
@@ -207,31 +247,30 @@ require __DIR__ . '/partials/header.php';
         </div>
         
         <div class="row justify-content-center align-items-center gy-4 px-4">
+            <?php
+            $fallbackPartners = [
+                ['nome' => 'TOTVS', 'logo' => 'assets/images/totvs.png'],
+                ['nome' => 'Dell', 'logo' => 'assets/images/dell.png'],
+                ['nome' => 'Microsoft', 'logo' => 'assets/images/microsoft.png'],
+                ['nome' => 'Zendesk', 'logo' => 'assets/images/zendesk.png'],
+                ['nome' => 'IBM', 'logo' => 'assets/images/ibm.png'],
+            ];
+            $partnersToRender = !empty($__partners) ? $__partners : $fallbackPartners;
+            foreach ($partnersToRender as $p):
+                $logo = trim((string)($p['logo'] ?? ''));
+                $logoUrl = $logo !== '' ? ios_url('/' . ltrim($logo, '/')) : '';
+                $nome = (string)($p['nome'] ?? '');
+            ?>
             <div class="col-6 col-md-4 col-lg-2">
                 <div class="partner-logo-container">
-                    <img src="assets/images/totvs.png" alt="TOTVS">
+                    <?php if ($logoUrl !== ''): ?>
+                        <img src="<?= htmlspecialchars($logoUrl) ?>" alt="<?= htmlspecialchars($nome) ?>">
+                    <?php else: ?>
+                        <span class="text-muted small"><?= htmlspecialchars($nome) ?></span>
+                    <?php endif; ?>
                 </div>
             </div>
-            <div class="col-6 col-md-4 col-lg-2">
-                <div class="partner-logo-container">
-                    <img src="assets/images/dell.png" alt="Dell">
-                </div>
-            </div>
-            <div class="col-6 col-md-4 col-lg-2">
-                <div class="partner-logo-container">
-                    <img src="assets/images/microsoft.png" alt="Microsoft">
-                </div>
-            </div>
-             <div class="col-6 col-md-4 col-lg-2">
-                <div class="partner-logo-container">
-                    <img src="assets/images/zendesk.png" alt="Zendesk">
-                </div>
-            </div>
-            <div class="col-6 col-md-4 col-lg-2">
-                <div class="partner-logo-container">
-                    <img src="assets/images/ibm.png" alt="IBM">
-                </div>
-            </div>
+            <?php endforeach; ?>
         </div>
     </div>
 </section>

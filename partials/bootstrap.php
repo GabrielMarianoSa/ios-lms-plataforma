@@ -15,13 +15,101 @@ if (!defined('IOS_BUILD')) {
     define('IOS_BUILD', $sha !== '' ? substr($sha, 0, 12) : 'local');
 }
 
+// Optional local dotenv loader (.env is gitignored). Does not override existing env vars.
+if (!function_exists('ios_load_dotenv')) {
+    function ios_load_dotenv(string $filePath): void
+    {
+        if (!is_file($filePath) || !is_readable($filePath)) {
+            return;
+        }
+
+        $lines = file($filePath, FILE_IGNORE_NEW_LINES);
+        if (!is_array($lines)) {
+            return;
+        }
+
+        foreach ($lines as $line) {
+            $line = trim((string)$line);
+            if ($line === '' || str_starts_with($line, '#')) {
+                continue;
+            }
+
+            $pos = strpos($line, '=');
+            if ($pos === false) {
+                continue;
+            }
+
+            $key = trim(substr($line, 0, $pos));
+            $value = trim(substr($line, $pos + 1));
+
+            if ($key === '') {
+                continue;
+            }
+
+            // Strip optional quotes
+            if ((str_starts_with($value, '"') && str_ends_with($value, '"')) || (str_starts_with($value, "'") && str_ends_with($value, "'"))) {
+                $value = substr($value, 1, -1);
+            }
+
+            // Do not override already-defined env
+            $already = getenv($key);
+            if ($already !== false && $already !== '') {
+                continue;
+            }
+
+            putenv($key . '=' . $value);
+            $_ENV[$key] = $value;
+        }
+    }
+}
+
+ios_load_dotenv(__DIR__ . '/../.env');
+
 // Useful to verify deploy/version in Railway (check response headers in DevTools)
 if (!headers_sent()) {
     header('X-IOS-Build: ' . IOS_BUILD);
 }
 
+// Session hardening (safe defaults)
+if (session_status() !== PHP_SESSION_ACTIVE) {
+    ini_set('session.use_strict_mode', '1');
+    ini_set('session.cookie_httponly', '1');
+    $isHttps = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off')
+        || (isset($_SERVER['HTTP_X_FORWARDED_PROTO']) && $_SERVER['HTTP_X_FORWARDED_PROTO'] === 'https');
+
+    session_set_cookie_params([
+        'lifetime' => 0,
+        'path' => '/',
+        'secure' => $isHttps,
+        'httponly' => true,
+        'samesite' => 'Lax',
+    ]);
+}
+
 if (session_status() !== PHP_SESSION_ACTIVE) {
     session_start();
+}
+
+if (!function_exists('ios_csrf_token')) {
+    function ios_csrf_token(): string
+    {
+        if (empty($_SESSION['csrf_token']) || !is_string($_SESSION['csrf_token'])) {
+            $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
+        }
+        return (string)$_SESSION['csrf_token'];
+    }
+}
+
+if (!function_exists('ios_csrf_validate')) {
+    function ios_csrf_validate(?string $token): bool
+    {
+        $sessionToken = $_SESSION['csrf_token'] ?? '';
+        if (!is_string($sessionToken) || $sessionToken === '') {
+            return false;
+        }
+        $token = (string)($token ?? '');
+        return hash_equals($sessionToken, $token);
+    }
 }
 
 if (!function_exists('ios_base_path')) {

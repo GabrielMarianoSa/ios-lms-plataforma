@@ -195,6 +195,13 @@ $recentInscricoes = $conn->query("
             </a>
         </div>
         <div class="col-6 col-md-4 col-lg-2">
+            <a href="editor-conteudo.php" class="quick-action">
+                <i class="bi bi-pencil-square"></i>
+                <div class="fw-bold">Editar Site</div>
+                <small class="text-muted d-none d-md-block mt-1">Textos, banners, parceiros</small>
+            </a>
+        </div>
+        <div class="col-6 col-md-4 col-lg-2">
             <a href="relatorio_geral.php" class="quick-action">
                 <i class="bi bi-file-earmark-spreadsheet"></i>
                 <div class="fw-bold">Relatórios</div>
@@ -206,13 +213,6 @@ $recentInscricoes = $conn->query("
                 <i class="bi bi-plug"></i>
                 <div class="fw-bold">Integrações</div>
                 <small class="text-muted d-none d-md-block mt-1">Logs externos</small>
-            </a>
-        </div>
-        <div class="col-6 col-md-4 col-lg-2">
-            <a href="<?= ios_url('/cursos.php') ?>" class="quick-action" target="_blank">
-                <i class="bi bi-eye"></i>
-                <div class="fw-bold">Ver Site</div>
-                <small class="text-muted d-none d-md-block mt-1">Como aluno vê</small>
             </a>
         </div>
     </div>

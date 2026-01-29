@@ -12,6 +12,10 @@
 </footer>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+  window.IOS_BASE = <?= json_encode(ios_base_path(), JSON_UNESCAPED_SLASHES) ?>;
+</script>
+<script src="<?= htmlspecialchars(ios_url('/assets/css/js/chatbot.js'), ENT_QUOTES, 'UTF-8') ?>"></script>
 <?php if (defined('IOS_BUILD')): ?>
 <!-- ios-build: <?= htmlspecialchars((string)IOS_BUILD, ENT_QUOTES, 'UTF-8') ?> -->
 <?php endif; ?>
