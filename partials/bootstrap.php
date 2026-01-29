@@ -12,7 +12,18 @@ if (!defined('IOS_BUILD')) {
         ?: getenv('GITHUB_SHA')
         ?: getenv('COMMIT_SHA')
         ?: '';
-    define('IOS_BUILD', $sha !== '' ? substr($sha, 0, 12) : 'local');
+
+    $deployId = getenv('RAILWAY_DEPLOYMENT_ID')
+        ?: getenv('RAILWAY_STATIC_URL')
+        ?: '';
+
+    if ($sha !== '') {
+        define('IOS_BUILD', substr($sha, 0, 12));
+    } elseif ($deployId !== '') {
+        define('IOS_BUILD', substr(preg_replace('/[^a-zA-Z0-9]/', '', $deployId), 0, 12));
+    } else {
+        define('IOS_BUILD', 'local');
+    }
 }
 
 // Optional local dotenv loader (.env is gitignored). Does not override existing env vars.
