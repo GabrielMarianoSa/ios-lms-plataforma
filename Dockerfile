@@ -22,4 +22,4 @@ COPY . /var/www/html
 EXPOSE 8080
 
 # Make Apache listen on Railway PORT
-CMD ["bash", "-lc", "p=${PORT:-8080}; sed -i \"s/Listen 80/Listen ${p}/\" /etc/apache2/ports.conf; sed -i \"s/<VirtualHost \\*:80>/<VirtualHost \\*:${p}>/\" /etc/apache2/sites-available/000-default.conf; apache2-foreground"]
+CMD ["bash", "-lc", "set -euo pipefail; echo '--- mods-enabled (mpm) ---'; ls -la /etc/apache2/mods-enabled | grep mpm || true; echo '--- LoadModule mpm in /etc/apache2 ---'; grep -R \"LoadModule mpm\" -n /etc/apache2 || true; p=${PORT:-8080}; sed -i \"s/Listen 80/Listen ${p}/\" /etc/apache2/ports.conf; sed -i \"s/<VirtualHost \\*:80>/<VirtualHost \\*:${p}>/\" /etc/apache2/sites-available/000-default.conf; apache2-foreground"]
