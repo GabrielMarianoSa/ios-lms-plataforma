@@ -7,8 +7,10 @@ RUN apt-get update \
 	&& rm -rf /var/lib/apt/lists/*
 
 # Enable rewrite for simple access rules (.htaccess)
-RUN a2dismod mpm_event mpm_worker || true \
-	&& a2enmod mpm_prefork \
+# Railway logs showed "More than one MPM loaded"; enforce prefork only.
+RUN rm -f /etc/apache2/mods-enabled/mpm_event.* /etc/apache2/mods-enabled/mpm_worker.* /etc/apache2/mods-enabled/mpm_prefork.* \
+	&& ln -sf /etc/apache2/mods-available/mpm_prefork.load /etc/apache2/mods-enabled/mpm_prefork.load \
+	&& ln -sf /etc/apache2/mods-available/mpm_prefork.conf /etc/apache2/mods-enabled/mpm_prefork.conf \
 	&& a2enmod rewrite headers \
 	&& echo "ServerName localhost" > /etc/apache2/conf-available/servername.conf \
 	&& a2enconf servername
