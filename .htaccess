@@ -1,0 +1,19 @@
+# Security: block access to non-public folders/files
+
+# (Apache only; used by Railway Docker runtime)
+
+<IfModule mod_rewrite.c>
+  RewriteEngine On
+
+# Block internal folders
+
+RewriteRule ^(sql|docs|config)/ - [F,L]
+
+# Block sensitive extensions
+
+RewriteRule \.(sql|md|env|bak|tmp|log)$ - [F,L,NC]
+</IfModule>
+
+<FilesMatch "\.(sql|md|env|bak|tmp|log)$">
+Require all denied
+</FilesMatch>
