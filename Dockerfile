@@ -7,7 +7,9 @@ RUN apt-get update \
 	&& rm -rf /var/lib/apt/lists/*
 
 # Enable rewrite for simple access rules (.htaccess)
-RUN a2enmod rewrite headers \
+RUN a2dismod mpm_event mpm_worker || true \
+	&& a2enmod mpm_prefork \
+	&& a2enmod rewrite headers \
 	&& echo "ServerName localhost" > /etc/apache2/conf-available/servername.conf \
 	&& a2enconf servername
 
