@@ -2,10 +2,24 @@
 .gitignore
 .vscode
 
+# Local env files
+.env
+.env.*
+
 # Local/exports
 *.sql
 banco_ios_*
 ios_deploy
+
+# Project docs and SQL helpers are not needed at runtime
+docs
+sql
+queries.sql
+
+# Temp / logs
+*.log
+*.tmp
+*.bak
 
 # OS
 Thumbs.db
